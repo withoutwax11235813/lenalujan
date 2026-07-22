@@ -1,0 +1,82 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwnerOfUserDoc(uid) {
+      return request.auth.uid == uid;
+    }
+
+    // users/{uid}: each partner can read the roster (so names show up
+    // next to expenses/orders) but can only write their own doc.
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isOwnerOfUserDoc(uid);
+      allow delete: if false;
+    }
+
+    // orders/{orderId}: both partners can read/write/delete everything --
+    // it's a 2-person shared business, not a per-partner silo -- so any
+    // signed-in partner can edit or delete any order, as long as they
+    // stamp themselves as updatedBy and the data stays valid.
+    match /orders/{orderId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.weightKg is number
+        && request.resource.data.pricePerKg is number
+        && request.resource.data.totalAmount == request.resource.data.weightKg * request.resource.data.pricePerKg
+        && request.resource.data.status in ['pending', 'delivered', 'cancelled']
+        && request.resource.data.paymentStatus in ['paid', 'unpaid'];
+
+      allow update: if isSignedIn()
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.status in ['pending', 'delivered', 'cancelled']
+        && request.resource.data.paymentStatus in ['paid', 'unpaid'];
+
+      allow delete: if isSignedIn();
+    }
+
+    // expenses/{expenseId}: same shared-access model as orders -- either
+    // partner can edit or delete any expense.
+    match /expenses/{expenseId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.amount is number
+        && request.resource.data.amount > 0
+        && request.resource.data.category in ['fuel', 'tools', 'machinery_maintenance', 'supplies', 'other'];
+
+      allow update: if isSignedIn()
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.category in ['fuel', 'tools', 'machinery_maintenance', 'supplies', 'other'];
+
+      allow delete: if isSignedIn();
+    }
+
+    // stock_movements/{movementId}: logs of firewood coming in (purchases
+    // or own production). Current available stock is computed client-side
+    // as sum(stock_movements.kg) minus kg of delivered orders.
+    match /stock_movements/{movementId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.kg is number
+        && request.resource.data.kg > 0;
+
+      allow update: if isSignedIn()
+        && request.resource.data.kg is number
+        && request.resource.data.kg > 0;
+
+      allow delete: if isSignedIn();
+    }
+  }
+}
