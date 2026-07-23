@@ -9,12 +9,13 @@ import { getFirestore } from 'firebase/firestore';
 // Since the partners are non-technical, hardcode these here (same
 // pattern as CobrApp / RepartoCarne) so no .env setup is required.
 const firebaseConfig = {
-  apiKey: 'REPLACE_ME',
-  authDomain: 'REPLACE_ME.firebaseapp.com',
-  projectId: 'REPLACE_ME',
-  storageBucket: 'REPLACE_ME.appspot.com',
-  messagingSenderId: 'REPLACE_ME',
-  appId: 'REPLACE_ME'
+  apiKey: "AIzaSyD5IjoOaPXynPANtia7YJ90XlAzLO3Sb8U",
+  authDomain: "maderalujan.firebaseapp.com",
+  projectId: "maderalujan",
+  storageBucket: "maderalujan.firebasestorage.app",
+  messagingSenderId: "34200546300",
+  appId: "1:34200546300:web:48587e21c05b84c173a079",
+ 
 };
 
 const app = initializeApp(firebaseConfig);
